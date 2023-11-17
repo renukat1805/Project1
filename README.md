@@ -12,91 +12,93 @@ Pre-Requiset:
 --------------
 * Setup Jenkins (ubuntu with t2.large)
 * setup webhook integration for automatic Build Triggers 
-* Create A Role (name: ecr_role1 ) with AdministrationAccess  Attach to Jenkins Machine  
-* Create ECR Repo in the same region where jenkins machine available For to upoad image into that repo 
+* Create A Role (name: project_ecr_role) with AmazonEC2ContainerRegistryFullAccess attach to Jenkins Machine  
+* Create ECR Repository in the same region where jenkins machine available For to upload image into that repository 
 
 jenkinsFile Code steps
 -------------------------------
->step1: To build pipeline code if we have any agent machine we need to include here To build job From agent mahine 
+>step1: To build pipeline code,we need to create agent machine and include here to build job from agent machine 
    
-    pipeline{
+    pipeline
+    {
         agent any
     }
 
 >step2: To Pass environments in jenkins
 
     environment {
-        APP_NAME = "myapp"
-        ECR_REGISTRY = "115498080659.dkr.ecr.us-east-1.amazonaws.com"
-        ECR_REPOSITORY = "thej"
+        APP_NAME = "tomcat"
+        ECR_REGISTRY = "172701893228.dkr.ecr.us-west-2.amazonaws.com"
+        ECR_REPOSITORY = "renurepo"
         IMAGE_NAME = "${APP_NAME}"
         BUILD_VERSION = getVersion()
     }
-   
 
->step3: clean workspace 
+>step3: Download the code From Repository
 
-        stage("Clear Workspace"){
-            steps{
-                cleanWs()
+        stage("Download the code")
+        {
+            steps
+            {
+                git 'https://github.com/renukat1805/Project1.git'
             }
         }
 
->step4: Download Code From Repo
+>step4: Build and test application code using maven 
 
-        stage("Download Code"){
-            steps{
-                git 'https://github.com/thej950/project-1.git'
-            }
-        }
-
->step5: Build and test application code using maven 
-
-        stage("Test Application"){
-            steps{
+        stage("Test the Application")
+        {
+            steps
+            {
                     sh 'mvn test'
             }
         }
-        stage("Build Application Code"){
-            steps{
+        stage("Build the Application")
+        {
+            steps
+            {
                 sh 'mvn package'
             }
         }
 
->step6: Build the Docker image 
+>step5: Build the Docker image 
     
-* First Download Docker into Jenkins Machine for Building image from Dockerfile
+* First Download Docker in Jenkins Machine for Building image from Dockerfile
        
-        # sudo curl -fsSL https://get.docker/com -o docker.sh
-        # sh docker.sh
+        # sudo curl -fsSL https://get.docker.com -o install-docker.sh
+        # sudo sh install-docker.sh
 
-* Add jenkins user into dokcer group to build docker images Directly 
-        # sudo usermod -a -G docker jenkins
-* Add jenkins user into sudo group for to run root commands also enter details of jenkins user in sudoers file To avoid to no to ask password [ jenkins ALL (ALL:ALL) NOPASSWD:ALL ]
+* Add jenkins user in dokcer group to build docker images directly 
+        # sudo usermod -aG docker jenkins
+* Add jenkins user in sudo group to run root commands. Also, enter details of jenkins user in sudoers file to avoid for asking password [ jenkins ALL (ALL:ALL) NOPASSWD:ALL ]
        
-        # sudo usermod -a -G sudo jenkins
+        # sudo usermod -aG sudo jenkins
         # vim /etc/sudoers
         
 * To Build Docker image    
         
-        stage("Build Docker image"){
-            steps{
+        stage("Build Docker image")
+        {
+            steps
+            {
                  sh "docker build -t $APP_NAME:$BUILD_VERSION ."
             }
         }
 
->step7: To push Docker image into ECR repository 
-* if Jenkins machine is avilable in AWS cloud Environment that machine need to Contain a Role with  AdministrationAccess and attach to jenkins machine  or create a user with specific policy which is  AmazoneEc2ContainerRegistryFullAccess For only specifically for ECR
+>step6: To push Docker image into ECR repository 
+* if Jenkins machine is avilable in AWS cloud Environment that machine need to Contain a Role with  AmazonEC2ContainerRegistoryFullAccess and attach to jenkins machine
 * If Jenkins machine available In local environment then that machine Required a User (navathej) with AdministrationAccess  
-* there are combinations of steps included here To push already existing dokcer image into ecr repository
-* check ecr repo is avialabile if its not create first in AWS ECR service 
-* take commands after creating ecr repo include into code to upload image into ecr repo 
-* Below are jenkins code To upload image into ecr repo 
+* check if ECR repository is available, if its not available then create the repository in AWS ECR service
+* There are combination of steps included below to push already existing docker image into ECR repository 
+* Below is the jenkins code to upload image into ECR repository 
 
-        stage("Push Docker image To ECR"){
-            steps{
-                script{
-                    sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+        stage("Push the Docker image to ECR")
+        {
+            steps
+            {
+                script
+                {
+                    sh "aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
                     sh "docker tag $APP_NAME:$BUILD_VERSION $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
                     sh "docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
                 }
@@ -104,24 +106,25 @@ jenkinsFile Code steps
         }
 
 
->step8: Now clear images on jenkins machine 
+>step7: Now delete the images on jenkins machine 
         
-        stage("Clear Docker images locally") {
-            steps{
+        stage("delete the Docker images on locally") 
+        {
+            steps
+            {
                 sh 'docker system prune -af'
             }
         }
 
 
->step9: Now pull ECR image into local machine for this we need to login into ECR fist then perform to run image locally 
+>step8: Now pull ECR image into local machine for this we need to login to ECR and deploy it into EC2 Machine(Docker) 
 
-* setup Docker machine (specify security group in the inbound rules  ports ssh 22 port to only one specific machine IP , and specify  customised port 9090 To anyone to Access our webpage)
+* setup Docker machine (specify security group in the inbound rules. Open ssh 22 port to  admin access only and specify customised port 9898 to anyone to access our webpage)
 * Establish Password Less Authentication from Jenkins machine to Docker machine 
-* include ubuntu user into docker group for to run docker commands 
+* Add ubuntu user in docker group for to run docker commands 
+* For this to create a role with AmazonEC2ContainerRegistryFullAccess attached to ec2-instance  
 
-* For this To create a role with AmazoneEc2ContainerRegistryFullAccess attached to ec2-instance or create a user with AmazoneEc2ContainerRegistryFullAccess Both will work 
-
-* authenticate first To aws ecr For this machine need ECR permissions 
+* Authenticate to AWS ECR for this machine we need to install AWSCLI and AWS Configure to create Accesskey and secretaccesskey on IAM for ECR permissions 
 
         # aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
 
@@ -129,26 +132,27 @@ jenkinsFile Code steps
 
         # docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION
 
->step10: stop old contaiers if running with same name (myappcontainer)
+>step9: Now Run the container 
 
-        stage("stop previuos containers") {
-            steps{
-                script{ 
-                    sh 'ssh ubuntu@54.234.168.231 docker rm -f myappcontainer'
-                }
+        stage("Run the Docker image")
+        {
+            steps
+            {
+                sh "ssh ubuntu@172.31.18.30 docker run --name mytomee -d -p 9898:8080 $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
             }
         }
+>step10: stop previous containers if running with same name (mytomee)
 
->step11: Now Run container 
-
-        stage("Run Docker image") {
-            steps{
-                sh "ssh ubuntu@54.234.168.231 docker run --name myappcontainer -d -p 9090:8080 $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
+        stage("stop previous containers") 
+        {
+            steps
+            {
+               sh 'ssh ubuntu@172.31.18.30 docker rm -f mytomee'
             }
-        }
+            
+        }        
 
-
->step12: setup To send Notification To gmail ( for this we need to setup smtp port in jenkins to perticular gmail )
+>step11: setup to send Notification To gmail ( for this we need to setup smtp port in jenkins to particular gmail )
 
 * according below steps if all steps gets success it will send project success message or if any step gets fail it will failed project
 * To setup mail configuration in jenkins follw this link: https://drive.google.com/file/d/1G2HGfoGKyv3pzB1eLnW8mVxaUeltqpZ1/view?usp=drive_link
