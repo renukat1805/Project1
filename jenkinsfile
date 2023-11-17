@@ -1,48 +1,111 @@
 pipeline
 {
     agent any
+    
+     environment {
+        APP_NAME = "tomcat"
+        ECR_REGISTRY = "172701893228.dkr.ecr.us-west-2.amazonaws.com"
+        ECR_REPOSITORY = "renurepo"
+        IMAGE_NAME = "${APP_NAME}"
+        BUILD_VERSION = getVersion()
+    }
+    
     stages
     {
-        stage('contdown')
+        stage ('Download the code')
         {
             steps
             {
-                git 'https://github.com/renukat1805/mymaven11.git'
+                git 'https://github.com/renukat1805/Project1.git'
             }
-    
         }
-        stage('contbuild')
+        stage ('Test the Application')
+        {
+            steps
+            {
+                sh 'mvn test'
+            }
+        }
+        stage ('Build the Application')
         {
             steps
             {
                 sh 'mvn package'
             }
-    
         }
-        stage('contdeploy')
+        stage ('Building of docker image')
         {
             steps
             {
-                deploy adapters: [tomcat9(credentialsId: '18204f8f-fabd-444a-9b73-d296ce198436', path: '', url: 'http://172.31.32.108:8080')], contextPath: 'test1', war: '**/*.war'
+                sh "docker build -t $APP_NAME:$BUILD_VERSION ."
             }
-    
         }
-        stage('conttest')
+         stage("Push the Docker image to ECR")
+         {
+            steps
+            {
+                script
+                {
+                    sh "aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+                    sh "docker tag $APP_NAME:$BUILD_VERSION $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
+                    sh "docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
+                }
+            }
+        }
+        stage("delete the Docker images on locally") 
         {
             steps
             {
-                git 'https://github.com/intelliqittrainings/FunctionalTesting.git'
-                sh 'java -jar /var/lib/jenkins/workspace/Declarativepipeline/testing.jar'
+                sh 'docker system prune -af'
             }
-    
         }
-        stage('contdelivery')
+        stage("Deploy ECR image into EC2 machine")
+        {
+            steps
+            { 
+                script
+                { 
+                    sh 'ssh ubuntu@172.31.18.30 aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
+                    sh 'ssh ubuntu@172.31.18.30 docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION'
+                }
+            }
+        }
+        stage ("delete previuos container") 
         {
             steps
             {
-                deploy adapters: [tomcat9(credentialsId: '18204f8f-fabd-444a-9b73-d296ce198436', path: '', url: 'http://172.31.47.238:8080')], contextPath: 'prod1', war: '**/*.war'
+                    sh 'ssh ubuntu@172.31.18.30 docker rm -f mytomee'
             }
-    
+        }
+        stage ("Run the Docker image") 
+        {
+            steps
+            {
+                sh "ssh ubuntu@172.31.18.30 docker run --name mytomee -d -p 9898:8080 $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
+            }
+        }
+        stage ("stop previuos container") 
+        {
+            steps
+            {
+                sh 'ssh ubuntu@172.31.18.30 docker rm -f mytomee'
+            }
         }
     }
+    post
+    {
+        success 
+        {
+            mail bcc: '', body: 'CI/CD gets success', cc: '', from: '', replyTo: '', subject: 'Project completed successfully', to: 'renurenuka1807@gmail.com'
+        }
+        failure 
+        {
+            mail bcc: '', body: 'CI/CD failed', cc: '', from: '', replyTo: '', subject: 'Project failed', to: 'renurenuka1807@gmail.com'
+        }
+    }
+}
+def getVersion() 
+{
+    def buildNumber = env.BUILD_NUMBER ?: '0'
+    return "1.0.${buildNumber}"
 }
