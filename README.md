@@ -179,8 +179,8 @@ jenkinsFile Code steps
 
 # All stages 
 
-![Alt text](images/image.png)
+![Alt text](<Screenshot 2023-11-17 120406.png>)
 
 # Gmail Notification 
 
-![Alt text](images/image-1.png)
+![Alt text](email.png)
