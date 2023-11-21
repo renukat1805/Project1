@@ -169,19 +169,20 @@ jenkinsFile Code steps
 * To setup mail configuration in jenkins follw this link: https://drive.google.com/file/d/1G2HGfoGKyv3pzB1eLnW8mVxaUeltqpZ1/view?usp=drive_link
  
 
-        post {
-            success {
-                mail bcc: '', body: 'ci-cd gets success', cc: '', from: '', replyTo: '', subject: 'Pojects completed successfully', to: 'goudc423@gmail.com'
-                echo "Project completed Successfully"
+        post
+        {
+            success
+            {
+               mail bcc: '', body: 'CI/CD gets success', cc: '', from: '', replyTo: '', subject: 'Project completed successfully', to: 'renurenuka1807@gmail.com'
             }
-            failure {
-                mail bcc: '', body: 'failed ci-cd', cc: '', from: '', replyTo: '', subject: 'Pojects Failed', to: 'goudc423@gmail.com'
-                echo "Project Failed"
+            failure
+            {
+                mail bcc: '', body: 'CI/CD failed', cc: '', from: '', replyTo: '', subject: 'Project failed', to: 'renurenuka1807@gmail.com'
             }
         }
 
 
->step13: specify function to trigger build versions images 
+>step14: specify function to trigger build versions images 
 
         def getVersion() {
             def buildNumber = env.BUILD_NUMBER ?: '0'
