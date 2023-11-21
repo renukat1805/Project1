@@ -77,7 +77,7 @@ jenkinsFile Code steps
         
 * To Build Docker image    
         
-        stage("Build Docker image")
+        stage("Building of Docker image")
         {
             steps
             {
