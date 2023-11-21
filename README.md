@@ -131,8 +131,19 @@ jenkinsFile Code steps
 * pull image from ECR    
 
         # docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION
+  
+>step10: delete previous containers if running with same name (mytomee)
 
->step9: Now Run the container 
+        stage("delete previous containers") 
+        {
+            steps
+            {
+               sh 'ssh ubuntu@172.31.18.30 docker rm -f mytomee'
+            }
+            
+        }          
+
+>step11: Now Run the container 
 
         stage("Run the Docker image")
         {
@@ -141,7 +152,7 @@ jenkinsFile Code steps
                 sh "ssh ubuntu@172.31.18.30 docker run --name mytomee -d -p 9898:8080 $ECR_REGISTRY/$ECR_REPOSITORY:$BUILD_VERSION"
             }
         }
->step10: stop previous containers if running with same name (mytomee)
+>step12: stop previous containers if running with same name (mytomee)
 
         stage("stop previous containers") 
         {
@@ -152,7 +163,7 @@ jenkinsFile Code steps
             
         }        
 
->step11: setup to send Notification To gmail ( for this we need to setup smtp port in jenkins to particular gmail )
+>step13: setup to send Notification To gmail ( for this we need to setup smtp port in jenkins to particular gmail )
 
 * according below steps if all steps gets success it will send project success message or if any step gets fail it will failed project
 * To setup mail configuration in jenkins follw this link: https://drive.google.com/file/d/1G2HGfoGKyv3pzB1eLnW8mVxaUeltqpZ1/view?usp=drive_link
