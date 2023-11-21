@@ -122,11 +122,11 @@ jenkinsFile Code steps
 * setup Docker machine (specify security group in the inbound rules. Open ssh 22 port to  admin access only and specify customised port 9898 to anyone to access our webpage)
 * Establish Password Less Authentication from Jenkins machine to Docker machine 
 * Add ubuntu user in docker group for to run docker commands 
-* For this to create a role with AmazonEC2ContainerRegistryFullAccess attached to ec2-instance  
+* For this to create a role(name: project_ecr_role1) with AmazonEC2ContainerRegistryFullAccess attached to ec2-instance  
 
 * Authenticate to AWS ECR for this machine we need to install AWSCLI and AWS Configure to create Accesskey and secretaccesskey on IAM for ECR permissions 
 
-        # aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+        # aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
 * pull image from ECR    
 
@@ -166,7 +166,7 @@ jenkinsFile Code steps
 >step13: setup to send Notification To gmail ( for this we need to setup smtp port in jenkins to particular gmail )
 
 * according below steps if all steps gets success it will send project success message or if any step gets fail it will failed project
-* To setup mail configuration in jenkins follw this link: https://drive.google.com/file/d/1G2HGfoGKyv3pzB1eLnW8mVxaUeltqpZ1/view?usp=drive_link
+* To setup mail configuration in jenkins follow this link: https://drive.google.com/file/d/1G2HGfoGKyv3pzB1eLnW8mVxaUeltqpZ1/view?usp=drive_link
  
 
         post
